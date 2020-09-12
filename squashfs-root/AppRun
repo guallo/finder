@@ -1,0 +1,55 @@
+#!/bin/bash
+
+RESULT_FILE_DIR="$(dirname "${ARGV0:-$0}")"
+RESULT_FILE_TPL="finder-result-XXX.txt.gz"
+
+mktemp_() {
+    local dir="${1:-/tmp}"
+    local tpl="${2:-tmp.XXXXXXXXXX}"
+    
+    local xs="$(grep -Po 'X+' <<< "$tpl" | tail -n 1)"
+    local xs_len=${#xs}
+    
+    if [ $xs_len -lt 3 ]; then
+        echo "mktemp_: too few X's in template: $tpl" >&2
+        return 1
+    fi
+    
+    while true; do
+        rand_chars="$(cat /dev/urandom | tr -dc "a-zA-Z0-9" | 
+                    fold -w $xs_len | head -n 1)"
+        base_name="$(sed 's/X\+\([^X]*\)$/'$rand_chars'\1/' <<< "$tpl")"
+        file="$dir/$base_name"
+        
+        if ! [ -e "$file" ]; then
+            if touch "$file"; then
+                echo "$file"
+                return 0
+            fi
+            return 1
+        fi
+    done
+}
+
+find_() {
+    local root_disk="$(df / | tail -n 1 | grep -Po '^[^\d]+')"
+    local mount_points="$(mount | grep -P '^'$root_disk'\d+\s' | 
+                        grep -Po '(?<=\son\s)/.*(?=\stype\s)')"
+    
+    local mount_point
+    
+    while IFS= read -r mount_point; do
+        echo "# $mount_point"
+        find "$mount_point" -mount
+    done <<< "$mount_points"
+}
+
+main() {
+    local result_file
+    result_file="$(mktemp_ "$RESULT_FILE_DIR" "$RESULT_FILE_TPL")"
+    (($?)) && return 1
+    
+    find_ 2>&1 | gzip --to-stdout > "$result_file"
+}
+
+main "$@"

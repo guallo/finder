@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=finder
+Comment=Finder
+Exec=finder
+Terminal=true
+Type=Application
+Icon=finder
+Categories=Utility;
+StartupNotify=true
+X-AppImage-Version=92ba415
+

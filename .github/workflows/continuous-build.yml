@@ -1,0 +1,42 @@
+name: Continuous build
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Download appimagetool
+      run: |
+        wget "https://github.com/$(
+          wget -q https://github.com/probonopd/go-appimage/releases -O - | \
+          grep -Po '(?<=href=")[^"]*appimagetool-.+-x86_64\.AppImage(?=")')"
+        chmod +x appimagetool-*-x86_64.AppImage
+    - name: Build AppImage
+      run: |
+        ARCH=x86_64 ./appimagetool-*-x86_64.AppImage squashfs-root/
+    - uses: actions/upload-artifact@v2.0.1
+      with:
+        name: appimage
+        path: finder-*-x86_64.AppImage
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: appimage
+        path: appimage
+    - uses: marvinpinto/action-automatic-releases@latest
+      with:
+        automatic_release_tag: continuous
+        title: Continuous build
+        files: |
+          appimage/finder-*-x86_64.AppImage
+        repo_token: ${{ secrets.GITHUB_TOKEN }}

@@ -32,8 +32,8 @@ mktemp_() {
 }
 
 find_() {
-    local root_disk="$(df / | tail -n 1 | grep -Po '^[^\d]+')"
-    local mount_points="$(mount | grep -P '^'$root_disk'\d+\s' | 
+    local part_prefix="$(df / | tail -n 1 | grep -Po '^.+?(?=\d+\s)')"
+    local mount_points="$(mount | grep -P '^'"$part_prefix"'\d+\s' | 
                         grep -Po '(?<=\son\s)/.*(?=\stype\s)')"
     
     local mount_point
